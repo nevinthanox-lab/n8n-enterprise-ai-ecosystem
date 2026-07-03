@@ -1,0 +1,235 @@
+{
+  "name": "Log & Notify",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "ticket_id"
+            },
+            {
+              "name": "subject"
+            },
+            {
+              "name": "category"
+            },
+            {
+              "name": "status"
+            },
+            {
+              "name": "reason"
+            },
+            {
+              "name": "reviewer"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -704,
+        0
+      ],
+      "id": "c7813583-410a-4851-a58d-594f1c521819",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "ops-triage",
+          "mode": "name"
+        },
+        "text": "=✅ *Ticket Logged & Updated*\n\n• *Ticket ID:* TKT-{{ $json.TicketID.toString().slice(-4) }}\n• *Status:* {{ $json.Status }}\n• *Details:* {{ $json.Reason }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        -288,
+        0
+      ],
+      "id": "8bb42fb0-2062-4fdc-b3f4-de3c4f79a47a",
+      "name": "Send a message",
+      "webhookId": "b3588765-4062-472b-a082-d4b16c30e3dc",
+      "credentials": {
+        "slackApi": {
+          "id": "uaHKGU69Lsxib4HU",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1hjNVtBgwLp_Dp4rFIBty3gCTKQJfqioE2a7mRCQOXY0",
+          "mode": "list",
+          "cachedResultName": "Ops Triage",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1hjNVtBgwLp_Dp4rFIBty3gCTKQJfqioE2a7mRCQOXY0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Tickets",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1hjNVtBgwLp_Dp4rFIBty3gCTKQJfqioE2a7mRCQOXY0/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "TicketID": "={{ $json.ticket_id }}",
+            "Subject": "={{ ($json.subject || \"\").toString().replace(/^[=+\\-@]/, \"\").trim() }}",
+            "Category": "={{ ($json.category || \"\").toString().replace(/^[=+\\-@]/, \"\").trim() }}",
+            "Status": "={{ $json.status }}",
+            "Reason": "={{ $json.reason }}",
+            "Reviewer": "={{ $json.reviewer }}",
+            "Timestamp": "={{ $now.setZone('Asia/Colombo').toFormat('dd MMM yyyy, HH:mm:ss') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "TicketID",
+              "displayName": "TicketID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Subject",
+              "displayName": "Subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Reason",
+              "displayName": "Reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Reviewer",
+              "displayName": "Reviewer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -496,
+        0
+      ],
+      "id": "8f5813e5-29c1-460e-979b-fb53a92151cc",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YXhOG95tJtEHhEz6",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "ticket_id": "TEST-001",
+          "subject": "Password reset not working",
+          "category": "IT",
+          "status": "Auto-Resolved",
+          "reason": "Test run - password reset topic matched knowledge base",
+          "reviewer": "AI Agent"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "B4NE1ZDR8i6Pq96Q",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "52635c2c-7139-47de-b127-3972ae9cff85",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ee2228831ddbf45184e22febf3161d7ae502c8e4df2f9f580aac93f67ad6acd5"
+  },
+  "nodeGroups": [],
+  "id": "GduwyyYklMMp4m9c",
+  "tags": []
+}

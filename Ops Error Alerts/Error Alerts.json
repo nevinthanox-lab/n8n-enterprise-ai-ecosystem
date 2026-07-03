@@ -1,0 +1,70 @@
+{
+  "name": "Error Alerts",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -704,
+        -80
+      ],
+      "id": "8ccf876b-0535-4dc4-9d2b-2477a4cc4f27",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#errors",
+          "mode": "name"
+        },
+        "text": "={{ $json.workflow.name}} failed: {{ $json.execution.error.message }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        -496,
+        -80
+      ],
+      "id": "ab3d5bea-fbf1-4693-a5a2-08836bdfcc32",
+      "name": "Send a message",
+      "webhookId": "f0959382-4558-420a-ab7c-6e6fe759a5ae",
+      "credentials": {
+        "slackApi": {
+          "id": "uaHKGU69Lsxib4HU",
+          "name": "Slack account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "cd721637-688b-489a-bf5d-906574080e38",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ee2228831ddbf45184e22febf3161d7ae502c8e4df2f9f580aac93f67ad6acd5"
+  },
+  "nodeGroups": [],
+  "id": "B4NE1ZDR8i6Pq96Q",
+  "tags": []
+}

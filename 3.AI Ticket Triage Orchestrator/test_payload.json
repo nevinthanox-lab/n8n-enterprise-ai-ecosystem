@@ -1,0 +1,15 @@
+{
+  "_comment": "Sample form submissions for a dry run. Paste either object's fields into the 'Submit a Support Ticket' form (or POST them to the form's test webhook) to exercise one branch of the AI Agent's decision.",
+
+  "auto_resolve_example": {
+    "Subject": "Password reset not working",
+    "Description": "The reset link in my email says it's invalid every time I click it. I've tried three times and I need access to my account today.",
+    "Category": "IT"
+  },
+
+  "escalate_example": {
+    "Subject": "Overcharged on last invoice",
+    "Description": "This month's invoice shows a $200 charge I don't recognize and it doesn't match my subscription plan. I'd like this reviewed and refunded if it's an error.",
+    "Category": "Finance"
+  }
+}

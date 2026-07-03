@@ -1,0 +1,193 @@
+{
+  "name": "FAQ Ingestion",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -4112,
+        -192
+      ],
+      "id": "233f73b9-0c40-42de-adf3-ddc404fee2eb",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8ade31cd-e5c8-4bc3-b78c-a1abd09f4ba4",
+              "name": "faq_text",
+              "value": "Q: What is your refund policy? A: We offer full refunds within 30 days of purchase, no questions asked. Refunds are processed to the original payment method within 5-7 business days.  Q: Do you offer student discounts? A: Yes, 20% off any plan with a valid edu email address, verified automatically at signup.  Q: How do I cancel my subscription? A: Go to Settings > Billing > Cancel Plan. Your access continues until the end of the current billing period; no partial refunds are given for unused time.  Q: What payment methods do you accept? A: We accept all major credit cards, PayPal, and Apple Pay.  Q: Do you have a mobile app? A: Yes, our app is available for download on both iOS and Android devices.  Q: Can I change my plan later? A: Yes, you can upgrade or downgrade your plan at any time from your account settings.  Q: Is my data secure with you? A: Absolutely. We use industry-standard encryption to protect your data at rest and in transit.  Q: Do you offer international shipping? A: We are a digital service, so our platform is available globally. No physical shipping is required.  Q: How can I contact customer support? A: You can reach us via the live chat on our website or by emailing support@example.com.  Q: Do you offer a free trial? A: Yes, we offer a 14-day free trial for all new users with full access to all features.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -3904,
+        -192
+      ],
+      "id": "b1f20ed6-f8ec-45cd-9bea-1becd0bd325b",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "embeddingBatchSize": 5,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        -3712,
+        -192
+      ],
+      "id": "cdba922b-cbd9-45ce-8c46-1aa9f85080ee",
+      "name": "Supabase Vector Store",
+      "credentials": {
+        "supabaseApi": {
+          "id": "NYWTfDBCZjEaG1hv",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "sentence-transformers/all-MiniLM-L6-v2",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsHuggingFaceInference",
+      "typeVersion": 1,
+      "position": [
+        -3744,
+        16
+      ],
+      "id": "7ad0acd4-3dcc-4ec0-9f9b-dc40c1a459d5",
+      "name": "Embeddings HuggingFace Inference",
+      "credentials": {
+        "huggingFaceApi": {
+          "id": "gWrXPIbBHsDTTaYd",
+          "name": "Hugging Face account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonMode": "expressionData",
+        "jsonData": "={{ $json.faq_text }}",
+        "textSplittingMode": "custom",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        -3616,
+        16
+      ],
+      "id": "fcf56592-27ae-44d5-82c1-9a5d652d5ee9",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "chunkSize": 400,
+        "chunkOverlap": 40,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        -3584,
+        208
+      ],
+      "id": "161082f4-8482-4fcf-a621-f3c2d36b9fb1",
+      "name": "Recursive Character Text Splitter"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store": {
+      "ai_tool": [
+        []
+      ]
+    },
+    "Embeddings HuggingFace Inference": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "0d87d38b-c0ff-43d5-b961-ed395fee7b17",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ee2228831ddbf45184e22febf3161d7ae502c8e4df2f9f580aac93f67ad6acd5"
+  },
+  "nodeGroups": [],
+  "id": "9wAwzJUdMXwTg0cc",
+  "tags": []
+}

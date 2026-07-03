@@ -1,0 +1,574 @@
+{
+  "name": "Ticket Triage Orchestrator",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Submit a Support Ticket",
+        "formDescription": "Submit your ticket and our team will assist you",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Subject",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Description",
+              "fieldType": "textarea",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Category",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "IT"
+                  },
+                  {
+                    "option": "HR"
+                  },
+                  {
+                    "option": "Finance"
+                  }
+                ]
+              },
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        -528,
+        -32
+      ],
+      "id": "f1d725df-8913-47af-bda8-59c481f75270",
+      "name": "On form submission",
+      "webhookId": "bcce8dba-36e3-4a86-a018-515cc608221b"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"ticket_id\": \"={{ $now.toMillis() }}\",\n  \"subject\": \"={{ $json.Subject }}\",\n  \"description\": \"={{ $json.Description }}\",\n  \"category\": \"={{ $json.Category }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -320,
+        -32
+      ],
+      "id": "5d7cbf3b-48aa-4a69-afba-56c483ee1a9b",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Subject: {{ $json.subject }}\nCategory: {{ $json.category }}\nDescription: {{ $json.description }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are a support ticket triage agent. For each ticket:\n1. Use check_knowledge_base to see if a documented solution exists for the topic.\n2. If check_knowledge_base returns a matching row with a clear, safe, step-by-step solution, decision = \"auto_resolve\" — even if the ticket mentions words like \"locked\", \"login\", or \"password\", AS LONG AS the KB solution is a routine self-service or admin-panel fix (not an active breach, fraud, or unauthorized access report).\n3. decision = \"escalate\" ONLY if: (a) the topic involves money, refunds, or legal issues, OR (b) the user reports suspicious/unauthorized activity (e.g. \"someone else accessed my account\"), OR (c) check_knowledge_base returns NO matching row for the topic.\n4. Always give a one-sentence reason citing the exact KB row you matched (or state no match was found).\n5. Always draft a short, polite suggested_reply regardless of decision.\nRespond only in the required JSON structure."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -96,
+        -32
+      ],
+      "id": "7a60b19f-0a56-48e0-a368-3621e6ee1a29",
+      "name": "AI Agent",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        176
+      ],
+      "id": "811d2b74-e33b-45d4-922b-9e13b5ddd6a1",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "h6RFFIUwn7tjr9JF",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Look up known solutions for a ticket topic before deciding whether it can be auto-resolved",
+        "documentId": {
+          "__rl": true,
+          "value": "1hjNVtBgwLp_Dp4rFIBty3gCTKQJfqioE2a7mRCQOXY0",
+          "mode": "list",
+          "cachedResultName": "Ops Triage",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1hjNVtBgwLp_Dp4rFIBty3gCTKQJfqioE2a7mRCQOXY0/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1227081503,
+          "mode": "list",
+          "cachedResultName": "KnowledgeBase",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1hjNVtBgwLp_Dp4rFIBty3gCTKQJfqioE2a7mRCQOXY0/edit#gid=1227081503"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        -96,
+        208
+      ],
+      "id": "9ff872d5-9c0a-4d3c-a0d4-5a0da4b71002",
+      "name": "check_knowledge_base",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YXhOG95tJtEHhEz6",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"decision\": \"escalate\",\n  \"reason\": \"No matching knowledge base entry for 'refund policy dispute'; requires human judgment.\",\n  \"suggested_reply\": \"Thanks for reaching out — a team member will review this shortly.\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        64,
+        176
+      ],
+      "id": "ffaf991b-674f-413d-8322-638d1859c79e",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "eaf71bf0-2eab-4f82-b425-e7d1875a41ec",
+              "leftValue": "={{ $json.output.decision.trim() }}",
+              "rightValue": "escalate",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {
+          "ignoreCase": true
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        240,
+        -32
+      ],
+      "id": "c24b8210-a36b-4f89-9f8b-7e48e8f19c4f",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#ops-triage",
+          "mode": "name"
+        },
+        "text": "=🚨 *Action Required: Manual Review*\n\n🔹 *Ticket ID:* TKT-{{ $('Edit Fields').item.json.ticket_id.toString().slice(-4) }}\n🔹 *Status:* Needs Human Review\n\n💡 *AI Note:* \n{{ $json.output.reason }}\n\n🔗 *Review Link:* \n{{ $execution.resumeFormUrl }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.5,
+      "position": [
+        432,
+        -288
+      ],
+      "id": "6e157275-3d55-420c-a446-cdcefff4dd55",
+      "name": "Send a message",
+      "webhookId": "f9714847-bea3-404d-a685-f8d0b1097675",
+      "credentials": {
+        "slackApi": {
+          "id": "uaHKGU69Lsxib4HU",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resume": "form",
+        "formTitle": "Ticket Review Decision",
+        "formDescription": "Please review this escalated ticket and submit your decision",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Decision",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Approve"
+                  },
+                  {
+                    "option": "Reject"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Reviewer Name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Comment",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        560,
+        -48
+      ],
+      "id": "2efbbea0-bb59-45ae-a118-390296f6bd3d",
+      "name": "Wait",
+      "webhookId": "ed2721f9-a242-4adc-b5a8-bf105d78513a"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "GduwyyYklMMp4m9c",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/GduwyyYklMMp4m9c",
+          "cachedResultName": "Log & Notify"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ticket_id": "={{ $('Edit Fields').first().json.ticket_id }}",
+            "subject": "={{ $('Edit Fields').first().json.subject }}",
+            "category": "={{ $('Edit Fields').first().json.category }}",
+            "status": "Auto-Resolved",
+            "reason": "={{ $json.output.reason }}",
+            "reviewer": "AI Agent"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "ticket_id",
+              "displayName": "ticket_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "subject",
+              "displayName": "subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "reason",
+              "displayName": "reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "reviewer",
+              "displayName": "reviewer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        448,
+        64
+      ],
+      "id": "dc841914-af30-4c61-878f-bc2c0605e69a",
+      "name": "Call 'Log & Notify'"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "GduwyyYklMMp4m9c",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/GduwyyYklMMp4m9c",
+          "cachedResultName": "Log & Notify"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ticket_id": "={{ $('Edit Fields').item.json.ticket_id }}",
+            "subject": "={{ $('Edit Fields').item.json.subject }}",
+            "category": "={{ $('Edit Fields').item.json.category }}",
+            "status": "={{ $json.Decision }}",
+            "reason": "={{ $json.Comment }}",
+            "reviewer": "={{ $json['Reviewer Name'] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "ticket_id",
+              "displayName": "ticket_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "subject",
+              "displayName": "subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "reason",
+              "displayName": "reason",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "reviewer",
+              "displayName": "reviewer",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        768,
+        -48
+      ],
+      "id": "ee8d60ff-33b1-4374-8d67-305547f5f2f1",
+      "name": "Call 'Log & Notify'1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "check_knowledge_base": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call 'Log & Notify'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Call 'Log & Notify'1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "saveExecutionProgress": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "B4NE1ZDR8i6Pq96Q"
+  },
+  "versionId": "f8d22c37-1e74-4fed-b3ca-4462cb4018d5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ee2228831ddbf45184e22febf3161d7ae502c8e4df2f9f580aac93f67ad6acd5"
+  },
+  "nodeGroups": [],
+  "id": "mab0Gu558JA5dIld",
+  "tags": []
+}

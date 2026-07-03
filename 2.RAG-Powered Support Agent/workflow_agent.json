@@ -1,0 +1,300 @@
+{
+  "name": "Support Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "support-query",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1280,
+        -80
+      ],
+      "id": "4e55e8a0-2cc6-4172-9a5f-97deac0f0ade",
+      "name": "Webhook",
+      "webhookId": "769cbb92-4b97-4a98-a6c3-c8433399d6e6"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.question }}",
+        "options": {
+          "systemMessage": "You are a customer support agent. For every question, use the search_faq tool first to find relevant FAQ content, then answer using ONLY that content. If the search_faq tool returns nothing relevant to the question, do not guess. Instead, respond with exactly this phrase and nothing else: ESCALATE_TO_HUMAN. Be concise and friendly. Never invent policy details that weren't in the search results."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -1072,
+        -80
+      ],
+      "id": "1d62011d-3362-4f8e-81d3-8708c5893030",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -1088,
+        112
+      ],
+      "id": "5e575f14-ae42-41e4-9d6f-0b51b6b44fa5",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "h6RFFIUwn7tjr9JF",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Search the company FAQ for information relevant to the customer's question. Always use this before answering.",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        -960,
+        160
+      ],
+      "id": "3653ddd3-3ad1-4c9d-b032-4899e5a16e56",
+      "name": "search_faq",
+      "credentials": {
+        "supabaseApi": {
+          "id": "NYWTfDBCZjEaG1hv",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "sentence-transformers/all-MiniLM-L6-v2",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsHuggingFaceInference",
+      "typeVersion": 1,
+      "position": [
+        -704,
+        256
+      ],
+      "id": "f4e4dd3d-4926-4623-a182-f8f6d61cb5bb",
+      "name": "Embeddings HuggingFace Inference",
+      "credentials": {
+        "huggingFaceApi": {
+          "id": "gWrXPIbBHsDTTaYd",
+          "name": "Hugging Face account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "98a9c76d-0e06-4674-b311-e5ba8987d12c",
+              "leftValue": "={{ $json.output }}",
+              "rightValue": "ESCALATE_TO_HUMAN",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -720,
+        -80
+      ],
+      "id": "e1253241-5e95-4f51-916b-b0f014d9fed4",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "support-escalations",
+          "mode": "name"
+        },
+        "text": "=🆘 Unresolved customer question: {{ $('Webhook').item.json.body.question }}",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        -512,
+        -192
+      ],
+      "id": "c68c9309-cf62-478b-b7a4-56409c57574b",
+      "name": "Send a message",
+      "webhookId": "1804a559-a8e1-4f6a-9160-29fdbdb42eaf",
+      "credentials": {
+        "slackApi": {
+          "id": "uaHKGU69Lsxib4HU",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"answer\": \"Thanks for your question — a team member will follow up by email shortly.\"}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -304,
+        -192
+      ],
+      "id": "56e2bd5c-118b-4a18-ad50-8745956ec189",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"answer\": \"{{ $json.output }}\"}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -512,
+        16
+      ],
+      "id": "85035daa-3f4d-427d-abe0-d07898353b3d",
+      "name": "Respond to Webhook1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "search_faq": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings HuggingFace Inference": {
+      "ai_embedding": [
+        [
+          {
+            "node": "search_faq",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "B4NE1ZDR8i6Pq96Q",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "42186e9c-e17a-4910-8821-fea528b259c8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ee2228831ddbf45184e22febf3161d7ae502c8e4df2f9f580aac93f67ad6acd5"
+  },
+  "nodeGroups": [],
+  "id": "AD8MJVYapWxnFEo8",
+  "tags": []
+}
